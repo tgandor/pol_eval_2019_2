@@ -3,6 +3,7 @@ from __future__ import print_function
 import argparse
 import glob
 import os.path as p
+import sys
 import xml.sax
 
 # external libs
@@ -32,7 +33,7 @@ class Phrase(object):
         )
 
     def as_tsv(self):
-        return '\t'.join([self.phrase_id, self.document_id, self.rendered, self.lemma or self.rendered])
+        return '\t'.join([self.phrase_id, self.document_id, self.rendered, self.lemma])
 
 
 class PhraseHandler(xml.sax.ContentHandler):
@@ -92,6 +93,47 @@ class PhraseHandler(xml.sax.ContentHandler):
         return self.phrase_dict[self.phrase_ids[idx]]
 
 
+def single_word_lemma(word):
+    # analyzing sometimes fails
+    try:
+        interpretations = morfeusz.analyse(word)
+    except:
+        print('Parsing failed:', word, sys.exc_info(), file=sys.stderr)
+        return word
+
+    lemmas = set([i[0][1] for i in interpretations])
+
+    if word in lemmas:
+        # print('Leaving:', word)
+        return word
+
+    if len(lemmas) == 1:
+        lemma = list(lemmas)[0]
+        # print('Single candidate:', lemma)
+        splitted = lemma.split(':') # there are some flags in Morpheus, like Polska:s2
+        return splitted[0]
+
+    # fallback
+    return word
+
+
+def lemmatize(phrase):
+    if len(phrase.content) == 1:
+        ortographic = phrase.rendered
+        words = ortographic.split()
+        if len(words) == 1:
+            phrase.lemma = single_word_lemma(words[0])
+            # import code; code.interact(local=locals())
+            return
+
+        else:
+            # heuristic: only first word gets lemmatized
+            phrase.lemma = single_word_lemma(words[0]) + ' ' + ' '.join(words[1:])
+
+    # Naive fallback, but actually gets 0.52 score
+    phrase.lemma = phrase.rendered
+
+
 def process(filename):
     # print('Processing:', filename)
     # cheat sheet: https://www.tutorialspoint.com/python/python_xml_processing.htm
@@ -103,6 +145,7 @@ def process(filename):
 
     # right now it will to to stdout, redirect to a file if needed
     for phrase in handler:
+        lemmatize(phrase)
         print(phrase.as_tsv())
 
 def main():

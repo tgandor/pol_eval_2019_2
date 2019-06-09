@@ -67,7 +67,8 @@ def main():
             print('GT:', gt_phrase)
             print('---')
             continue
-            exit(1)
+            # this is too radical for now: too many mismatches
+            # exit(1)
 
         if phrase.lemma.lower() == gt_phrase.lemma.lower():
             tp_ci += 1
