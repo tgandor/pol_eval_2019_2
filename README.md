@@ -25,3 +25,9 @@ Score = 0.2 *AccCS+0.8*AccCI
 
 (end quote)
 
+# Solution details
+
+Morphological analysis done with Morfeusz2: http://sgjp.pl/morfeusz/dopobrania.html
+
+(License: http://sgjp.pl/morfeusz/warunki.html)
+

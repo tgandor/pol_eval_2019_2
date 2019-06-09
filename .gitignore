@@ -105,3 +105,6 @@ venv.bak/
 
 # data files
 _data/
+
+# morfeusz library
+libmorfeusz.so.0
