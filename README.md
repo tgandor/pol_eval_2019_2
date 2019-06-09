@@ -21,7 +21,7 @@ The goal is to generate a single TSV file. The file should contain a line for ea
 
 Acc = POS/N
 
-Score = 0.2 *AccCS+0.8*AccCI
+Score = 0.2 * AccCS + 0.8 * AccCI
 
 (end quote)
 
