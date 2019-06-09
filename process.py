@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import argparse
 import glob
 import os.path as p
@@ -29,11 +31,17 @@ class Phrase(object):
             render(content) for content in self.content
         )
 
+    def as_tsv(self):
+        return '\t'.join([self.phrase_id, self.document_id, self.rendered, self.lemma or self.rendered])
+
 
 class PhraseHandler(xml.sax.ContentHandler):
     def __init__(self):
         self.phrase_stack = []
         self.document_id = None
+        # for preorder ordering and retrieval by phrase_id
+        self.phrase_ids = []
+        self.phrase_dict = {}
 
     def startElement(self, tag, attributes):
         # print(tag, attributes)
@@ -43,7 +51,16 @@ class PhraseHandler(xml.sax.ContentHandler):
             return
 
         if tag == 'phrase':
-            self.phrase_stack.append(Phrase(attributes['id'], self.document_id))
+            # actually this whole preordering is overkill, because index.tsv
+            # turned out to not be sorted anyway (just as the phrase_id's behave randomly)
+            # it looks more like level-order (i.e. "BFS order").
+            # I will generate it in preorder; then there will need to be a script
+            # to compare it to GT (evaluate.py).
+            # Read more about orders: https://www.geeksforgeeks.org/tree-traversals-inorder-preorder-and-postorder/
+            new_phrase = Phrase(attributes['id'], self.document_id)
+            self.phrase_ids.append(new_phrase.phrase_id)
+            self.phrase_stack.append(new_phrase)
+            self.phrase_dict[new_phrase.phrase_id] = new_phrase
 
     def characters(self, content):
         if not self.phrase_stack:
@@ -62,13 +79,21 @@ class PhraseHandler(xml.sax.ContentHandler):
         if tag == 'phrase':
             assert self.phrase_stack
             phrase = self.phrase_stack.pop()
-            print('Finished phrase:', phrase.phrase_id, phrase.rendered)
+            # print('Finished phrase:', phrase.phrase_id, phrase.rendered)
             if self.phrase_stack:
                 self.phrase_stack[-1].content.append(phrase)
 
+    # phrase iteration in pre-order (opening, not closing order)
+
+    def __len__(self):
+        return len(self.phrase_ids)
+
+    def __getitem__(self, idx):
+        return self.phrase_dict[self.phrase_ids[idx]]
+
 
 def process(filename):
-    print('Processing:', filename)
+    # print('Processing:', filename)
     # cheat sheet: https://www.tutorialspoint.com/python/python_xml_processing.htm
     handler = PhraseHandler()
     parser = xml.sax.make_parser()
@@ -76,6 +101,9 @@ def process(filename):
     parser.setContentHandler(handler)
     parser.parse(filename)
 
+    # right now it will to to stdout, redirect to a file if needed
+    for phrase in handler:
+        print(phrase.as_tsv())
 
 def main():
     parser = argparse.ArgumentParser()
@@ -85,7 +113,7 @@ def main():
     args = parser.parse_args()
 
     if p.isdir(args.input):
-        print('isdir', args.input)
+        # print('isdir', args.input)
         for filename in glob.glob(p.join(args.input, '*.xml')):
             process(filename)
     elif p.isfile(args.input):
