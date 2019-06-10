@@ -56,6 +56,7 @@ def main():
     tp_cs = tp_ci = 0
     wrong = []
     wrong_case = []
+    correct = []
     skipped = 0
 
     for key, phrase in predicted.items():
@@ -78,6 +79,7 @@ def main():
 
         if phrase.lemma == gt_phrase.lemma:
             tp_cs += 1
+            correct.append((phrase, gt_phrase))
         else:
             wrong_case.append((phrase, gt_phrase))
 
@@ -92,6 +94,7 @@ def main():
     print('Score: {:.3f}'.format(acc))
 
     if args.save:
+        save_pairs('correct.tsv', correct)
         save_pairs('wrong.tsv', wrong)
         save_pairs('wrong_case.tsv', wrong_case)
 
