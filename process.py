@@ -103,6 +103,17 @@ def single_word_lemma(word):
 
     lemmas = set([i[0][1] for i in interpretations])
 
+    if len(interpretations) == 1 and interpretations[0][0][2] == 'ign':
+        # OOD - out of dictionary: maybe we can find this word in a different database
+        # cases:
+        # [inflected] acronyms
+        # inflected names like Murphy'iego
+        apos_agluts = "'a 'ego 'em 'er 'o 's 'u".split()
+        lemma = interpretations[0][0][1]
+        for ending in apos_agluts:
+            if ending in lemma:
+                return lemma.replace(ending, '')
+
     if word in lemmas:
         # print('Leaving:', word)
         return word
@@ -111,7 +122,12 @@ def single_word_lemma(word):
         lemma = list(lemmas)[0]
         # print('Single candidate:', lemma)
         splitted = lemma.split(':') # there are some flags in Morpheus, like Polska:s2
-        return splitted[0]
+        return splitted[0].capitalize() if word[0].isupper() else splitted[0]
+
+    # next step - cleans lemmas of markers, select only same-capitalization
+    matching_lemmas = set(lemma.split(':')[0] for lemma in lemmas if lemma[0].isupper() == word[0].isupper())
+    if len(matching_lemmas) == 1:
+        return list(matching_lemmas)[0]
 
     # fallback
     return word
@@ -129,6 +145,7 @@ def lemmatize(phrase):
         else:
             # heuristic: only first word gets lemmatized
             phrase.lemma = single_word_lemma(words[0]) + ' ' + ' '.join(words[1:])
+            return
 
     # Naive fallback, but actually gets 0.52 score
     phrase.lemma = phrase.rendered
