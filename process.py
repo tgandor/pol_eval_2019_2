@@ -151,7 +151,7 @@ def lemmatize(phrase):
     phrase.lemma = phrase.rendered
 
 
-def process(filename):
+def process(filename, args):
     # print('Processing:', filename)
     # cheat sheet: https://www.tutorialspoint.com/python/python_xml_processing.htm
     handler = PhraseHandler()
@@ -162,7 +162,10 @@ def process(filename):
 
     # right now it will to to stdout, redirect to a file if needed
     for phrase in handler:
-        lemmatize(phrase)
+        if args.no_op:
+            phrase.lemma = phrase.rendered
+        else:
+            lemmatize(phrase)
         print(phrase.as_tsv())
 
 def main():
@@ -170,12 +173,13 @@ def main():
     parser.add_argument('input', nargs='?',
         default=data_dir + '/poleval2019_task2_training_190221/',
         help='file or directory to process')
+    parser.add_argument('--no-op', action='store_true', help='output without lemmatization')
     args = parser.parse_args()
 
     if p.isdir(args.input):
         # print('isdir', args.input)
         for filename in glob.glob(p.join(args.input, '*.xml')):
-            process(filename)
+            process(filename, args)
     elif p.isfile(args.input):
         process(args.input)
     else:
